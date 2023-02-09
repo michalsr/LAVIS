@@ -235,13 +235,15 @@ class BlipVQA(BlipBase):
             )
 
     def _generate_answers(self, samples, num_beams=3, max_length=10, min_length=1):
+        #print(samples,'samples')
         encoder_out, _ = self.forward_encoder(samples)
-
+       
         question_output = encoder_out
 
         question_states = question_output.last_hidden_state.repeat_interleave(
             num_beams, dim=0
         )
+       # print(question_states.size(),'encoder')
         question_atts = torch.ones(question_states.size()[:-1], dtype=torch.long).to(
             self.device
         )
@@ -250,12 +252,14 @@ class BlipVQA(BlipBase):
             "encoder_hidden_states": question_states,
             "encoder_attention_mask": question_atts,
         }
-
+#         print(model_kwargs['encoder_hidden_states'].size(),'encoder hidden')
+#         print(model_kwargs['encoder_attention_mask'].size(),'encoder attention')
         bsz = samples["image"].size(0)
+      
         bos_ids = torch.full(
             (bsz, 1), fill_value=self.tokenizer.bos_token_id, device=self.device
         )
-
+       # print(bos_ids.size(),'bos')
         outputs = self.text_decoder.generate(
             input_ids=bos_ids,
             max_length=max_length,
@@ -265,10 +269,12 @@ class BlipVQA(BlipBase):
             pad_token_id=self.tokenizer.pad_token_id,
             **model_kwargs
         )
+     
 
         # collect answers
         answers = []
         for output in outputs:
+            #print(output)
             answer = self.tokenizer.decode(output, skip_special_tokens=True)
             answers.append(answer)
 
